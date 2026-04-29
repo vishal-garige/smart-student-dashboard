@@ -10,8 +10,7 @@ function App() {
   const [loading, setLoading] = useState(false);
 
   // ✅ USE DEPLOYED BACKEND (IMPORTANT)
-  const API = 'https://smart-student-dashboard-3idz.onrender.com/api/tasks';
-
+ const API = 'https://smart-student-dashboard-3idz.onrender.com/api/tasks';
   // Fetch tasks
   const getTasks = async () => {
     try {
