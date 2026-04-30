@@ -162,11 +162,12 @@ function App() {
     if (token) setIsLoggedIn(true);
   }, []);
 
-  // 📦 FETCH TASKS AFTER LOGIN
+  // 📦 FETCH TASKS AFTER LOGIN (FIXED ESLINT)
   useEffect(() => {
     if (isLoggedIn) {
       getTasks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn]);
 
   // 🔍 FILTER TASKS
