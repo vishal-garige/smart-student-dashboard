@@ -14,24 +14,33 @@ function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 🔥 YOUR BACKEND URL
-  const API = 'https://smart-student-dashboard-3idz.onrender.com/api/tasks';
+  // 🔥 BASE URL
+  const BASE_URL = 'https://smart-student-dashboard-3idz.onrender.com';
+  const TASK_API = `${BASE_URL}/api/tasks`;
 
   // 🔥 LOGIN
   const login = async () => {
     try {
+      setLoading(true);
+
       const res = await axios.post(
-        'https://smart-student-dashboard-3idz.onrender.com/api/auth/login',
+        `${BASE_URL}/api/auth/login`,
         { email, password }
       );
 
+      // ✅ save token
       localStorage.setItem('token', res.data.token);
+
+      // ✅ update login state
       setIsLoggedIn(true);
-      getTasks();
+
+      setError('');
 
     } catch (err) {
       console.error(err);
       setError('Login failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,7 +56,7 @@ function App() {
     try {
       setLoading(true);
 
-      const res = await axios.get(API, {
+      const res = await axios.get(TASK_API, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -70,7 +79,7 @@ function App() {
 
     try {
       await axios.post(
-        API,
+        TASK_API,
         { title },
         {
           headers: {
@@ -91,7 +100,7 @@ function App() {
   const markComplete = async (id) => {
     try {
       await axios.put(
-        `${API}/${id}`,
+        `${TASK_API}/${id}`,
         { status: 'completed' },
         {
           headers: {
@@ -110,7 +119,7 @@ function App() {
   // 🔥 DELETE TASK
   const deleteTask = async (id) => {
     try {
-      await axios.delete(`${API}/${id}`, {
+      await axios.delete(`${TASK_API}/${id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -123,14 +132,20 @@ function App() {
     }
   };
 
-  // 🔥 AUTO LOGIN
+  // ✅ AUTO LOGIN (only set login state)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       setIsLoggedIn(true);
-      getTasks();
     }
   }, []);
+
+  // ✅ FETCH TASKS AFTER LOGIN
+  useEffect(() => {
+    if (isLoggedIn) {
+      getTasks();
+    }
+  }, [isLoggedIn]);
 
   // FILTER
   const filteredTasks = tasks.filter(task => {
@@ -144,7 +159,7 @@ function App() {
 
       <h1>📊 Smart Student Dashboard</h1>
 
-      {/* LOGIN SCREEN */}
+      {/* LOGIN */}
       {!isLoggedIn && (
         <div>
           <input
@@ -157,6 +172,8 @@ function App() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <button onClick={login}>Login</button>
+
+          {error && <p style={{ color: 'red' }}>{error}</p>}
         </div>
       )}
 
@@ -165,8 +182,8 @@ function App() {
         <>
           <button onClick={logout}>Logout</button>
 
-          {error && <div style={{ color: 'red' }}>{error}</div>}
           {loading && <p>Loading...</p>}
+          {error && <p style={{ color: 'red' }}>{error}</p>}
 
           {/* INPUT */}
           <div className="inputBox">
@@ -178,14 +195,14 @@ function App() {
             <button onClick={addTask}>Add</button>
           </div>
 
-          {/* FILTERS */}
+          {/* FILTER */}
           <div className="filters">
             <button onClick={() => setFilter('all')}>All</button>
             <button onClick={() => setFilter('pending')}>Pending</button>
             <button onClick={() => setFilter('completed')}>Completed</button>
           </div>
 
-          {/* TASK LIST */}
+          {/* TASKS */}
           <div className="taskList">
             {filteredTasks.map(task => (
               <div className="card" key={task._id}>
