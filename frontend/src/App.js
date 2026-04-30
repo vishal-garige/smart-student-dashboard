@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -68,8 +68,8 @@ function App() {
     setTasks([]);
   };
 
-  // 📦 GET TASKS
-  const getTasks = async () => {
+  // 📦 GET TASKS (FIXED WITH useCallback)
+  const getTasks = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -79,7 +79,7 @@ function App() {
         }
       });
 
-      console.log('Tasks:', res.data); // DEBUG
+      console.log('Tasks:', res.data);
       setTasks(res.data);
       setError('');
 
@@ -89,7 +89,7 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // ➕ ADD TASK
   const addTask = async () => {
@@ -163,11 +163,12 @@ function App() {
     if (token) setIsLoggedIn(true);
   }, []);
 
+  // 🔥 FIXED ESLINT ERROR HERE
   useEffect(() => {
     if (isLoggedIn) {
       getTasks();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, getTasks]);
 
   // FILTER
   const filteredTasks = tasks.filter(task => {
