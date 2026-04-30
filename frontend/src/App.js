@@ -23,16 +23,17 @@ function App() {
     try {
       setLoading(true);
 
-      const res = await axios.post(
-        `${BASE_URL}/api/auth/login`,
-        { email, password }
-      );
+      const res = await axios.post(`${BASE_URL}/api/auth/login`, {
+        email,
+        password
+      });
 
       localStorage.setItem('token', res.data.token);
       setIsLoggedIn(true);
       setError('');
 
     } catch (err) {
+      console.log(err);
       setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
@@ -44,15 +45,16 @@ function App() {
     try {
       setLoading(true);
 
-      await axios.post(
-        `${BASE_URL}/api/auth/signup`,
-        { email, password }
-      );
+      await axios.post(`${BASE_URL}/api/auth/signup`, {
+        email,
+        password
+      });
 
       setError('Signup successful! Please login.');
       setIsSignup(false);
 
     } catch (err) {
+      console.log(err);
       setError(err.response?.data?.message || 'Signup failed');
     } finally {
       setLoading(false);
@@ -77,11 +79,13 @@ function App() {
         }
       });
 
+      console.log('Tasks:', res.data); // DEBUG
       setTasks(res.data);
       setError('');
 
     } catch (err) {
-      setError('Failed to fetch tasks');
+      console.log(err);
+      setError(err.response?.data?.message || 'Failed to fetch tasks');
     } finally {
       setLoading(false);
     }
@@ -91,44 +95,66 @@ function App() {
   const addTask = async () => {
     if (!title) return;
 
-    await axios.post(
-      TASK_API,
-      { title },
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      }
-    );
+    try {
+      setLoading(true);
 
-    setTitle('');
-    getTasks();
+      await axios.post(
+        TASK_API,
+        { title },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      setTitle('');
+      getTasks();
+
+    } catch (err) {
+      console.log(err);
+      setError(err.response?.data?.message || 'Failed to add task');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ✅ COMPLETE
+  // ✅ COMPLETE TASK
   const markComplete = async (id) => {
-    await axios.put(
-      `${TASK_API}/${id}`,
-      { status: 'completed' },
-      {
+    try {
+      await axios.put(
+        `${TASK_API}/${id}`,
+        { status: 'completed' },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
+      getTasks();
+
+    } catch (err) {
+      console.log(err);
+      setError('Failed to update task');
+    }
+  };
+
+  // ❌ DELETE TASK
+  const deleteTask = async (id) => {
+    try {
+      await axios.delete(`${TASK_API}/${id}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
-      }
-    );
+      });
 
-    getTasks();
-  };
+      getTasks();
 
-  // ❌ DELETE
-  const deleteTask = async (id) => {
-    await axios.delete(`${TASK_API}/${id}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-
-    getTasks();
+    } catch (err) {
+      console.log(err);
+      setError('Failed to delete task');
+    }
   };
 
   // AUTO LOGIN
@@ -141,7 +167,6 @@ function App() {
     if (isLoggedIn) {
       getTasks();
     }
-    // eslint-disable-next-line
   }, [isLoggedIn]);
 
   // FILTER
@@ -208,6 +233,9 @@ function App() {
             <button onClick={() => setFilter('pending')}>Pending</button>
             <button onClick={() => setFilter('completed')}>Completed</button>
           </div>
+
+          {loading && <p>Loading...</p>}
+          {error && <p style={{ color: 'red' }}>{error}</p>}
 
           {filteredTasks.map(task => (
             <div key={task._id}>
