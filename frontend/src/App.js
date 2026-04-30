@@ -141,11 +141,12 @@ function App() {
   }, []);
 
   // ✅ FETCH TASKS AFTER LOGIN
-  useEffect(() => {
-    if (isLoggedIn) {
-      getTasks();
-    }
-  }, [isLoggedIn]);
+useEffect(() => {
+  if (isLoggedIn) {
+    getTasks();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isLoggedIn]);
 
   // FILTER
   const filteredTasks = tasks.filter(task => {
