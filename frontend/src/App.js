@@ -6,108 +6,133 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
   const [filter, setFilter] = useState('all');
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ✅ USE DEPLOYED BACKEND (IMPORTANT)
- const API = 'https://smart-student-dashboard-3idz.onrender.com/api/tasks';
-  // Fetch tasks
+  // 🔥 YOUR BACKEND URL
+  const API = 'https://smart-student-dashboard-3idz.onrender.com/api/tasks';
+
+  // 🔥 LOGIN
+  const login = async () => {
+    try {
+      const res = await axios.post(
+        'https://smart-student-dashboard-3idz.onrender.com/api/auth/login',
+        { email, password }
+      );
+
+      localStorage.setItem('token', res.data.token);
+      setIsLoggedIn(true);
+      getTasks();
+
+    } catch (err) {
+      console.error(err);
+      setError('Login failed');
+    }
+  };
+
+  // 🔥 LOGOUT
+  const logout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    setTasks([]);
+  };
+
+  // 🔥 GET TASKS
   const getTasks = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(API);
+
+      const res = await axios.get(API, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
       setTasks(res.data);
       setError('');
+
     } catch (err) {
       console.error(err);
-      setError('⚠️ Failed to fetch tasks');
+      setError('Failed to fetch tasks');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    getTasks();
-  }, []);
-
-  // Add task
+  // 🔥 ADD TASK
   const addTask = async () => {
     if (!title) return;
+
     try {
-      await axios.post(API, { title });
+      await axios.post(
+        API,
+        { title },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
       setTitle('');
       getTasks();
+
     } catch (err) {
       console.error(err);
-      setError('⚠️ Failed to add task');
     }
   };
 
-  // Mark complete
+  // 🔥 COMPLETE TASK
   const markComplete = async (id) => {
     try {
-      await axios.put(`${API}/${id}`, {
-        status: 'completed'
-      });
+      await axios.put(
+        `${API}/${id}`,
+        { status: 'completed' },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+
       getTasks();
+
     } catch (err) {
       console.error(err);
-      setError('⚠️ Failed to update task');
     }
   };
 
-  // Delete task
+  // 🔥 DELETE TASK
   const deleteTask = async (id) => {
     try {
-      await axios.delete(`${API}/${id}`);
+      await axios.delete(`${API}/${id}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
       getTasks();
+
     } catch (err) {
       console.error(err);
-      setError('⚠️ Failed to delete task');
     }
   };
 
-  // Days ago
-  const getDaysAgo = (date) => {
-    const created = new Date(date);
-    const now = new Date();
-    const diffDays = Math.floor((now - created) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "1 day ago";
-    return `${diffDays} days ago`;
-  };
-
-  // Stats
-  const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'completed').length;
-  const pendingTasks = totalTasks - completedTasks;
-
-  // Streak
-  const getStreak = () => {
-    const days = new Set(
-      tasks.map(t => new Date(t.createdAt).toDateString())
-    );
-
-    const sorted = [...days].map(d => new Date(d)).sort((a, b) => b - a);
-
-    let streak = 0;
-    let current = new Date();
-
-    for (let d of sorted) {
-      const diff = Math.floor((current - d) / (1000 * 60 * 60 * 24));
-      if (diff === 0 || diff === 1) {
-        streak++;
-        current = d;
-      } else break;
+  // 🔥 AUTO LOGIN
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+      getTasks();
     }
+  }, []);
 
-    return streak;
-  };
-
-  const streak = getStreak();
-
-  // Filter
+  // FILTER
   const filteredTasks = tasks.filter(task => {
     if (filter === 'completed') return task.status === 'completed';
     if (filter === 'pending') return task.status === 'pending';
@@ -116,70 +141,78 @@ function App() {
 
   return (
     <div className="container">
+
       <h1>📊 Smart Student Dashboard</h1>
 
-      {/* ERROR */}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
+      {/* LOGIN SCREEN */}
+      {!isLoggedIn && (
+        <div>
+          <input
+            placeholder="Email"
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button onClick={login}>Login</button>
+        </div>
+      )}
 
-      {/* LOADING */}
-      {loading && <p>Loading...</p>}
+      {/* DASHBOARD */}
+      {isLoggedIn && (
+        <>
+          <button onClick={logout}>Logout</button>
 
-      {/* Stats */}
-      <div>
-        <b>Total:</b> {totalTasks} |
-        <b> Completed:</b> {completedTasks} |
-        <b> Pending:</b> {pendingTasks} |
-        🔥 <b>Streak:</b> {streak}
-      </div>
+          {error && <div style={{ color: 'red' }}>{error}</div>}
+          {loading && <p>Loading...</p>}
 
-      {/* Input */}
-      <div className="inputBox">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Enter task..."
-        />
-        <button onClick={addTask}>Add</button>
-      </div>
-
-      {/* Filters */}
-      <div className="filters">
-        <button onClick={() => setFilter('all')}>All</button>
-        <button onClick={() => setFilter('pending')}>Pending</button>
-        <button onClick={() => setFilter('completed')}>Completed</button>
-      </div>
-
-      {/* Tasks */}
-      <div className="taskList">
-        {filteredTasks.map(task => (
-          <div className="card" key={task._id}>
-            <div>
-              <span className={task.status === 'completed' ? 'done' : ''}>
-                {task.title}
-              </span>
-              <div style={{ fontSize: '12px', color: 'gray' }}>
-                {getDaysAgo(task.createdAt)}
-              </div>
-            </div>
-
-            <div className="actions">
-              <button
-                onClick={() => markComplete(task._id)}
-                disabled={task.status === 'completed'}
-              >
-                ✓
-              </button>
-
-              <button
-                onClick={() => deleteTask(task._id)}
-                className="delete"
-              >
-                ✕
-              </button>
-            </div>
+          {/* INPUT */}
+          <div className="inputBox">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter task..."
+            />
+            <button onClick={addTask}>Add</button>
           </div>
-        ))}
-      </div>
+
+          {/* FILTERS */}
+          <div className="filters">
+            <button onClick={() => setFilter('all')}>All</button>
+            <button onClick={() => setFilter('pending')}>Pending</button>
+            <button onClick={() => setFilter('completed')}>Completed</button>
+          </div>
+
+          {/* TASK LIST */}
+          <div className="taskList">
+            {filteredTasks.map(task => (
+              <div className="card" key={task._id}>
+                <span className={task.status === 'completed' ? 'done' : ''}>
+                  {task.title}
+                </span>
+
+                <div className="actions">
+                  <button
+                    onClick={() => markComplete(task._id)}
+                    disabled={task.status === 'completed'}
+                  >
+                    ✓
+                  </button>
+
+                  <button
+                    onClick={() => deleteTask(task._id)}
+                    className="delete"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

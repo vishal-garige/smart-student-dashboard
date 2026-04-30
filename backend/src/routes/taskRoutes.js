@@ -1,20 +1,29 @@
 import express from 'express';
 import Task from '../models/Task.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+
+
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const tasks = await Task.find();
+    const tasks = await Task.find({ user: req.user.id });
     res.json(tasks);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-router.post('/', async (req, res) => {
+
+
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const task = new Task(req.body);
+    const task = new Task({
+      ...req.body,
+      user: req.user.id
+    });
+
     await task.save();
     res.json(task);
   } catch (err) {
@@ -23,16 +32,17 @@ router.post('/', async (req, res) => {
 });
 
 
-router.put('/:id', async (req, res) => {
+
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
+    const updatedTask = await Task.findOneAndUpdate(
+      { _id: req.params.id, user: req.user.id },
       req.body,
       { new: true }
     );
 
     if (!updatedTask) {
-      return res.status(404).json({ message: 'Task not found' });
+      return res.status(404).json({ message: 'Task not found or not authorized' });
     }
 
     res.json(updatedTask);
@@ -41,13 +51,15 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const deletedTask = await Task.findByIdAndDelete(req.params.id);
+    const deletedTask = await Task.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user.id
+    });
 
     if (!deletedTask) {
-      return res.status(404).json({ message: 'Task not found' });
+      return res.status(404).json({ message: 'Task not found or not authorized' });
     }
 
     res.json({ message: 'Task deleted successfully' });
